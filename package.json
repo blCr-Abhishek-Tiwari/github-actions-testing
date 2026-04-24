@@ -1,0 +1,24 @@
+{
+  "name": "github-actions-testing",
+  "version": "1.0.0",
+  "description": "This Repo is used for the github actions testing",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blCr-Abhishek-Tiwari/github-actions-testing.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/blCr-Abhishek-Tiwari/github-actions-testing/issues"
+  },
+  "homepage": "https://github.com/blCr-Abhishek-Tiwari/github-actions-testing#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
