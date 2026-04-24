@@ -65,6 +65,11 @@ app.get('/api/users/:id', (req, res) => {
     res.json({ user: { id, name: `User ${id}` } });
 });
 
+app.get('/api/users', (req, res) => { 
+    res.json({ users: [{ id: 1, name: 'John Doe' }, { id: 2, name: 'Jane Doe' }] });
+});
+
+
 app.post('/api/users', (req, res) => {
     const { name } = req.body;
     res.json({ message: `User '${name}' created successfully!` });
