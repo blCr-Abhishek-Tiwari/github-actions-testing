@@ -29,7 +29,9 @@ jobs:
               id: cache
               uses: actions/cache@v3
               with:
-                path: node_modules
+                path: |
+                    ~/.npm
+                    node_modules
                 key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
             - name: Install dependencies
@@ -38,5 +40,6 @@ jobs:
 
             - name: Build and deploy
               run: |
+                npm ls --depth=0 || true 
                 echo "Building and deploying the application..."
                 # Add your build and deployment commands here
