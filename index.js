@@ -49,6 +49,12 @@ app.get('/api/products', (req, res) => {
   res.json({ products: [{ id: 101, name: 'Laptop' }, { id: 102, name: 'Smartphone' }] });
 });
 
+
+app.post('/api/products', (req, res) => {
+  const { name } = req.body;
+  res.json({ message: `Product '${name}' created successfully!` });
+});
+
 // Order route
 app.get('/api/orders', (req, res) => {
   res.json({ orders: [{ id: 201, user: 'John Doe', product: 'Laptop' }] });
