@@ -61,7 +61,7 @@ app.get('/api/status', (req, res) => {
 
 // Analytics route
 app.get('/api/analytics', (req, res) => {
-  res.json({ visitors: 1234, sales: 567 });
+  res.json({ visitors: 1234, sales:453453});
 });
 
 // Start the server
