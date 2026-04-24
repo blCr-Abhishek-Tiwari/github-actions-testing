@@ -1,0 +1,107 @@
+name: CertifyME Revamp PA FE
+
+on:
+#   push:
+#     branches:
+#       - main
+  workflow_dispatch:
+
+env:
+  APP_DIR: /home/ec2-user/certifyme-pa-fe
+  TMP_DIR: /home/ec2-user/tmp-deploy
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy (Amazon Linux 2023)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Configure npm for cache usage
+        run: |
+          npm config set prefer-offline true # use cached packages first, only go to internet if cache is missing
+          npm config set fund false # hides “funding messages” to reduce noise in logs
+          npm config set audit false # disables automatic security audits to speed up install to reduce noise in logs
+
+          
+    
+      - name: Cache Node.js modules
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: |
+              ~/.npm
+              node_modules
+
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Dependencies & Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          echo "Cache Miss, Installing dependencies..."
+          npm install
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Archive Build
+        run: tar -czf build.tar.gz build
+
+      - name: Upload Build to Server (TMP)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          source: "build.tar.gz"
+          target: "${{ env.TMP_DIR }}"
+
+      - name: Deploy via SSH (Clean Replace)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            set -e
+
+            APP_DIR="${{ env.APP_DIR }}"
+            TMP_DIR="${{ env.TMP_DIR }}"
+
+            echo "=========================================="
+            echo "Deployment Started"
+            echo "=========================================="
+
+            echo "[1/5] Prepare directories..."
+            mkdir -p $APP_DIR
+            mkdir -p $TMP_DIR
+
+            echo "[2/5] Extract build in TMP..."
+            rm -rf $TMP_DIR/build
+            tar -xzf $TMP_DIR/build.tar.gz -C $TMP_DIR
+
+            echo "[3/5] Remove old files..."
+            [ -z "$APP_DIR" ] && { echo "APP_DIR is not set!"; exit 1; }
+            rm -rf "$APP_DIR"/*
+
+            echo "[4/5] Move new build..."
+            mv $TMP_DIR/build/* $APP_DIR/
+
+            echo "[5/5] Cleanup TMP..."
+            rm -rf $TMP_DIR/build
+            rm -f $TMP_DIR/build.tar.gz
+
+            echo "=========================================="
+            echo "Deployment Completed"
+            echo "=========================================="
+
+
