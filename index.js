@@ -47,6 +47,14 @@ app.get('/api/data', (req, res) => {
   res.json({ data: [1, 2, 3, 4, 5] });
 });
 
+app.get('/api/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.get('/api/random', (req, res) => {
+  res.json({ random: Math.random() });
+});
+
 // User route
 app.get('/api/users', (req, res) => {
   res.json({ users: [{ id: 1, name: 'John Doe' }, { id: 2, name: 'Jane Doe' }] });
