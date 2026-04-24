@@ -39,6 +39,14 @@ app.get('/api/example', (req, res) => {
 
 // Additional API routes
 
+app.get('/api/info', (req, res) => {
+  res.json({ info: 'This is some additional information.' });
+});
+
+app.get('/api/data', (req, res) => {
+  res.json({ data: [1, 2, 3, 4, 5] });
+});
+
 // User route
 app.get('/api/users', (req, res) => {
   res.json({ users: [{ id: 1, name: 'John Doe' }, { id: 2, name: 'Jane Doe' }] });
