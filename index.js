@@ -5,6 +5,26 @@ const port = 3000;
 // Middleware to parse JSON
 app.use(express.json());
 
+const bcrypt = require('bcrypt');
+const moment = require('moment');
+
+// Example usage of bcrypt
+(async () => {
+  const salt = await bcrypt.genSalt(10);
+  const hash = await bcrypt.hash('examplePassword', salt);
+  console.log('Hashed password:', hash);
+})();
+
+// Example usage of moment
+const now = moment();
+console.log('Current date and time:', now.format());
+
+// Additional usage of moment modules
+console.log('Start of the day:', now.startOf('day').format());
+console.log('End of the day:', now.endOf('day').format());
+console.log('Add 7 days:', now.add(7, 'days').format());
+console.log('Subtract 1 month:', now.subtract(1, 'month').format());
+
 // Sample API routes
 
 // Home route

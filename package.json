@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/blCr-Abhishek-Tiwari/github-actions-testing#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "moment": "^2.30.1"
   }
 }
