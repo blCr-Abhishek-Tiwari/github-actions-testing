@@ -1,14 +1,13 @@
 name: CM-Lite-BE
 
 on:
-#   push:
-#     branches:
-#       - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy Backend to Server
     runs-on: ubuntu-latest
 
     steps:
@@ -20,19 +19,27 @@ jobs:
         with:
           node-version: 20
 
-      - name: Cache Node Modules
+      - name: Configure npm for cache usage
+        run: |
+          npm config set prefer-offline true # use cached packages first, only go to internet if cache is missing
+          npm config set fund false # hides “funding messages” to reduce noise in logs
+          npm config set audit false # disables automatic security audits to speed up install to reduce noise in logs
+
+      - name: Cache Node.js modules
         id: cache
         uses: actions/cache@v3
         with:
-          path: node_modules
+          path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
 
       - name: Install Dependencies & Build
-        if: steps.cache.outputs.cache-hit != 'true' || hashFiles('**/package.json', '**/package-lock.json') != ''
         run: |
+          echo "Cache Miss, Installing dependencies..."
           npm install
+
+      - name: Build 
+        run: |
+          echo "Building application..."
           npm run build
 
       - name: Prepare Deploy Folder

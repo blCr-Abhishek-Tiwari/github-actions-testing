@@ -19,6 +19,11 @@ jobs:
               uses: actions/setup-node@v3
               with:
                 node-version: '24'
+            - name: Configure npm for cache usage
+              run: |
+                npm config set prefer-offline true # use cached packages first, only go to internet if cache is missing
+                npm config set fund false # hides “funding messages” to reduce noise in logs
+                npm config set audit false # disables automatic security audits to speed up install to reduce noise in logs
 
             - name: Cache Node.js modules
               id: cache
