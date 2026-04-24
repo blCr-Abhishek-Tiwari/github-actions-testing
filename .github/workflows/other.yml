@@ -1,0 +1,88 @@
+name: CM-Lite-BE
+
+on:
+#   push:
+#     branches:
+#       - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Backend to Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Cache Node Modules
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies & Build
+        if: steps.cache.outputs.cache-hit != 'true' || hashFiles('**/package.json', '**/package-lock.json') != ''
+        run: |
+          npm install
+          npm run build
+
+      - name: Prepare Deploy Folder
+        run: |
+          rm -rf deploy
+          mkdir deploy
+
+          cp dist/main.js deploy/
+          cp dist/main.js.map deploy/
+          cp package.json deploy/
+          cp package-lock.json deploy/
+
+          echo "Deploy folder contents:"
+          ls -la deploy
+
+      - name: Upload Files to Server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          source: deploy/main.js,deploy/main.js.map,deploy/package-lock.json,deploy/package.json
+          target: /home/ec2-user/CM-Lite-BE
+          strip_components: 1
+
+      - name: Deploy and Restart Backend with PM2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            APP_DIR="/home/ec2-user/CM-Lite-BE"
+
+            echo "=========================================="
+            echo "Deployment Started"
+            echo "=========================================="
+
+            cd $APP_DIR
+
+            echo "[1/3] Installing production dependencies..."
+            npm install
+            npm ls --depth=0
+
+            echo "[2/3] Restarting backend with PM2..."
+            pm2 restart Tenant-Backend || pm2 start main.js --name Tenant-Backend
+
+            echo "[3/3] Saving PM2 process list..."
+            pm2 save
+
+            echo "Deployment Completed Successfully"
