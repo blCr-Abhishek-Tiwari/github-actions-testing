@@ -1,0 +1,21 @@
+name : Parallel Workflow
+
+on : 
+    workflow_dispatch:
+
+
+jobs:
+    jfrog:
+        runs-on: ubuntu-latest
+        steps:
+            - name: JFrog Step
+              run: echo "This is the JFrog step"
+
+    
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deploy Step
+              run: echo "This is the Deploy step"
+
+    
