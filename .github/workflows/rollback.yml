@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Download Known-Good Artifact
         # Using v4 to match your deployment pipeline
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: deploy-files
           # Targets the specific successful run you want to restore
