@@ -1,45 +1,199 @@
-name: Deployment
+name: Backend Deployment
 
-on: 
-    push:
-        branches:
-            - main
+# Event
+on:
+  # Listend Events
+  push:
+    branches:
+      - main
+      - staging
+      # manuual trigger for deployment to staging or production
+  workflow_dispatch:
 
-    workflow_dispatch:
+  # inputs for manual trigger
+    inputs:
+        environment:
+            description: "Select the Deployment Environment"
+            required: true
+            default: "staging"
+            type: choice
+            options:
+              - staging
+              - production
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
+  prepare-deployment:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v3
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment == 'staging' && 'staging' || 'main') || github.ref_name }}
 
-            - name: Set up Node.js
-              uses: actions/setup-node@v3
-              with:
-                node-version: 20
-            - name: Configure npm for cache usage
-              run: |
-                npm config set prefer-offline true # use cached packages first, only go to internet if cache is missing
-                npm config set fund false # hides “funding messages” to reduce noise in logs
-                npm config set audit false # disables automatic security audits to speed up install to reduce noise in logs
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 20
 
-            - name: Cache Node.js modules
-              id: cache
-              uses: actions/cache@v3
-              with:
-                path: |
-                    ~/.npm
-                    node_modules
-                key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      - name: Configure npm for cache usage
+        run: |
+          npm config set prefer-offline true
+          npm config set fund false
+          
+      - name: Cache Node.js modules
+        id: cache
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+              ~/.npm
+              node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
-            - name: Install dependencies
-            #   if: steps.cache.outputs.cache-hit != 'true'
-              run: npm install
+      - name: Install Dependencies & Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          echo "Cache Miss, Installing dependencies..."
+          npm install
 
-            - name: Build and deploy
-              run: |
-                npm ls --depth=0 || true 
-                echo "Building and deploying the application..."
-                # Add your build and deployment commands here
+      - name: Build 
+        run: |
+          echo "Building application..."
+          npm run build
+
+      - name: Prepare Deploy Folder
+        run: |
+          rm -rf deploy
+          mkdir deploy
+
+          # cp dist/main.js deploy/
+          # cp dist/main.js.map deploy/
+          # cp package.json deploy/
+          # cp package-lock.json deploy/
+          cp . deploy/ 
+
+          echo "Deploy folder contents:"
+          ls -la deploy
+      
+      - name: Upload Deploy Artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: deploy-files
+          path: deploy/
+          include-hidden-files: true
+
+  # staging:
+  #     needs: prepare-deployment
+  #     if: (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging') || (github.event_name == 'push' && github.ref == 'refs/heads/staging')
+  #     runs-on: ubuntu-latest
+  #     # Why?
+  #     environment: staging
+      
+  #     steps:
+        
+  #       - name: Download Deploy Artifact
+  #         uses: actions/download-artifact@v8.0.1
+  #         with:
+  #           name: deploy-files
+  #           path: deploy/
+
+  #       - name: Upload Files to Staging Server
+  #         uses: appleboy/scp-action@v1.0.0
+  #         with:
+  #            # Bastion (Jump Server) Details
+  #           proxy_host: ${{ secrets.BASTION_HOST }}
+  #           proxy_username: ${{ secrets.BASTION_USER }}
+  #           proxy_key: ${{ secrets.BASTION_SSH_KEY }}
+  #           proxy_port: ${{ secrets.BASTION_PORT }}
+  #           # Target Private Server Details
+  #           host: ${{ secrets.HOST }}
+  #           username: ${{ secrets.USER }}
+  #           key: ${{ secrets.SSH_KEY }}
+  #           port: ${{ secrets.PORT }}
+  #           source: "deploy/main.js,deploy/main.js.map,deploy/package-lock.json,deploy/package.json"
+  #           target: /home/ec2-user/Staging-CM-Lite-BE
+  #           strip_components: 1  
+
+  #       - name: Deploy and Restart Backend with PM2 in Staging
+  #         uses: appleboy/ssh-action@v1.2.5
+  #         with:
+  #           # Bastion (Jump Server) Details
+  #           proxy_host: ${{ secrets.BASTION_HOST }}
+  #           proxy_username: ${{ secrets.BASTION_USER }}
+  #           proxy_key: ${{ secrets.BASTION_SSH_KEY }}
+  #           proxy_port: ${{ secrets.BASTION_PORT }}
+            
+  #           host: ${{ secrets.HOST }}
+  #           username: ${{ secrets.USER }}
+  #           key: ${{ secrets.SSH_KEY }}
+  #           port: ${{ secrets.PORT }}
+  #           script: |
+                
+  #               APP_DIR="/home/ec2-user/Staging-CM-Lite-BE"
+
+  #               echo "Deployment Started in Staging Environment"
+
+  #               cd $APP_DIR
+
+  #               echo "[1/3] Installing production dependencies..."
+  #               npm install
+  #               npm ls --depth=0 || true 
+
+  #               echo "[2/3] Restarting backend with PM2..."
+  #               pm2 restart Staging-Tenant-Backend || pm2 start main.js --name Staging-Tenant-Backend
+
+  #               echo "[3/3] Saving PM2 process list..."
+  #               pm2 save
+
+  #               echo "Deployment Completed in Staging Environment"    
+
+  # production:
+  #     needs: prepare-deployment
+  #     if: (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+  #     runs-on: ubuntu-latest
+  #     environment: production
+      
+  #     steps:
+        
+  #       - name: Download Deploy Artifact
+  #         uses: actions/download-artifact@v8.0.1
+  #         with:
+  #           name: deploy-files
+  #           path: deploy/
+
+  #       - name: Upload Files to Production Server
+  #         uses: appleboy/scp-action@v1.0.0
+  #         with:
+  #           host: ${{ secrets.HOST }}
+  #           username: ${{ secrets.USER }}
+  #           key: ${{ secrets.SSH_KEY }}
+  #           port: ${{ secrets.PORT }}
+  #           source: "deploy/main.js,deploy/main.js.map,deploy/package-lock.json,deploy/package.json"
+  #           target: /home/ec2-user/CM-Lite-BE
+  #           strip_components: 1
+
+  #       - name: Deploy and Restart Backend with PM2 in Production
+  #         uses: appleboy/ssh-action@v1.2.5
+  #         with:
+  #           host: ${{ secrets.HOST }}
+  #           username: ${{ secrets.USER }}
+  #           key: ${{ secrets.SSH_KEY }}
+  #           port: ${{ secrets.PORT }}
+  #           script: |
+  #               APP_DIR="/home/ec2-user/CM-Lite-BE"
+
+  #               echo "Deployment Started in Production Environment"
+
+  #               cd $APP_DIR
+
+  #               echo "[1/3] Installing production dependencies..."
+  #               npm install
+  #               npm ls --depth=0 || true 
+
+  #               echo "[2/3] Restarting backend with PM2..."
+  #               pm2 restart Tenant-Backend || pm2 start main.js --name Tenant-Backend
+
+  #               echo "[3/3] Saving PM2 process list..."
+  #               pm2 save
+
+  #               echo "Deployment Completed in Production Environment"
