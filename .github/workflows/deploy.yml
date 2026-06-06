@@ -56,11 +56,6 @@ jobs:
           echo "Cache Miss, Installing dependencies..."
           npm install
 
-      - name: Build 
-        run: |
-          echo "Building application..."
-          npm run build
-
       - name: Prepare Deploy Folder
         run: |
           rm -rf deploy
@@ -70,6 +65,7 @@ jobs:
           # cp dist/main.js.map deploy/
           # cp package.json deploy/
           # cp package-lock.json deploy/
+          
           cp . deploy/ 
 
           echo "Deploy folder contents:"
