@@ -65,8 +65,8 @@ jobs:
           # cp dist/main.js.map deploy/
           # cp package.json deploy/
           # cp package-lock.json deploy/
-          
-          cp . deploy/ 
+
+          cp -r . deploy/ 
 
           echo "Deploy folder contents:"
           ls -la deploy
